@@ -1,6 +1,6 @@
 # EM-Synchrony-Moped
 
-EM-Synchrony-Moped is a Moped (https://github.com/mongoid/mongoid) driver patch for EM-Synchtony(http://github.com/igrigorik/em-synchrony).  Moped is the MongoDB driver for the Mongoid ORM (http://github.com/mongoid/mongoid).
+EM-Synchrony-Moped is a [Moped](https://github.com/mongoid/mongoid) driver patch for [EM-Synchrony](http://github.com/igrigorik/em-synchrony).  Moped is the MongoDB driver for the [Mongoid](http://github.com/mongoid/mongoid).
 
  * Supports SSL connections
 
