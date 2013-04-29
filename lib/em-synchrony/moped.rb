@@ -89,7 +89,7 @@ silence_warnings {
                 end
               end
               
-              host = @options[:ssl][:verify_host] || @options[:host]
+              host = @options[:ssl][:verify_host]
               if OpenSSL::SSL.verify_certificate_identity(cert, host)
                 @verified = true
                 return true
