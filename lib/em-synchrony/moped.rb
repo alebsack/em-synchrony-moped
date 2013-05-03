@@ -27,7 +27,10 @@ silence_warnings {
             break
           end
         end
+        raise SocketError unless @ip_address
         @resolved_address = "#{@ip_address}:#{@port}"
+      rescue Resolv::ResolvError
+        raise SocketError
       end
     end
 
