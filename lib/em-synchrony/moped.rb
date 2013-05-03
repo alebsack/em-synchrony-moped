@@ -1,4 +1,6 @@
 require "moped/connection"
+require "moped/node"
+require 'em-resolv-replace'
 
 silence_warnings {
   
@@ -8,6 +10,27 @@ silence_warnings {
         EM::Synchrony.sleep(seconds)
       end
     end
+    
+    class Node
+      # Override to support non-blocking DNS requests
+      def parse_address
+        host, port = address.split(":")
+        @port = (port || 27017).to_i
+      
+        @resolver ||= Resolv.new([Resolv::Hosts.new, Resolv::DNS.new])
+
+        # For now, limit the IPs only to IPv4 hosts.  In order to support IPv6,
+        # the node should be able to handle fallback connections.
+        @resolver.getaddresses(host).each do |ip|
+          if ip =~ Resolv::IPv4::Regex
+            @ip_address = ip
+            break
+          end
+        end
+        @resolved_address = "#{@ip_address}:#{@port}"
+      end
+    end
+
     
     class Connection
       def connect
