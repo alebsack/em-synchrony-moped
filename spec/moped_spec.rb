@@ -10,6 +10,24 @@ describe "em-synchrony/moped" do
     host = options.delete(:host) || 'localhost'
     Moped::Node.new("#{host}:#{FakeMongodHelper::BASE_PORT}", options)
   end
+  
+  context "ip address caching" do
+    subject { new_node }
+    around do |block|
+      EventMachine.synchrony do
+        start_mongod
+        
+        block.call
+        EM.stop
+      end
+    end
+    
+    it "doesn't cache the ip_address" do
+      subject.ip_address == "10.0.0.1"
+      subject.should_receive(:parse_address)
+      subject.refresh
+    end
+  end
 
   context "without ssl" do
     
