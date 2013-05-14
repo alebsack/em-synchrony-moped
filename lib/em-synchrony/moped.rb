@@ -12,6 +12,18 @@ silence_warnings {
     end
     
     class Node
+      def resolve_address
+        begin
+          parse_address and true
+        rescue SocketError
+          if logger = Moped.logger
+            logger.warn " MOPED: Could not resolve IP address for #{address}"
+          end
+          @down_at = Time.new
+          false
+        end
+      end
+      
       # Override to support non-blocking DNS requests
       def parse_address
         host, port = address.split(":")
