@@ -2,33 +2,56 @@ require "moped/connection"
 require "moped/node"
 require 'em-resolv-replace'
 
-silence_warnings {
-  
+silence_warnings do
   module Moped
     class Cluster
       def sleep(seconds)
         EM::Synchrony.sleep(seconds)
       end
-    end
-    
-    class Node
-      def resolve_address
-        begin
-          parse_address and true
-        rescue SocketError
-          if logger = Moped.logger
-            logger.warn " MOPED: Could not resolve IP address for #{address}"
-          end
-          @down_at = Time.new
-          false
+
+      # MONKEY PATCH: if all available connections are down, use the seeds
+      # again to determine, where the application should connect. This is a
+      # implementation detail and unlikely to be main line. Therefore no pull
+      # request here. The assumtion is, that if we can't connect to any mongodb
+      # that they are relocated and available under a different DNS address.
+      def nodes(opts = {})
+        current_time = Time.new
+        down_boundary = current_time - down_interval
+        refresh_boundary = current_time - refresh_interval
+
+        # Find the nodes that were down but are ready to be refreshed, or those
+        # with stale connection information.
+        needs_refresh, available = @nodes.partition do |node|
+          node.down? ? (node.down_at < down_boundary) : node.needs_refresh?(refresh_boundary)
         end
+
+        # Refresh those nodes.
+        available.concat refresh(needs_refresh)
+
+        # Now return all the nodes that are available and participating in the
+        # replica set.
+        avail_not_down = available.reject do |node|
+          node.down? || !member?(node) || (!opts[:include_arbiters] && node.arbiter?)
+        end
+
+        if avail_not_down.empty?
+          if logger = Moped.logger
+            logger.warn " MOPED: reinitialize cluster because all nodes " \
+                        "are down with #{@seeds.inspect}"
+          end
+          @nodes = @seeds.map { |host| Node.new(host, @options) }
+        end
+
+        avail_not_down
       end
-      
+    end
+
+    class Node
       # Override to support non-blocking DNS requests
       def parse_address
         host, port = address.split(":")
         @port = (port || 27017).to_i
-      
+
         @resolver ||= Resolv.new([Resolv::Hosts.new, Resolv::DNS.new])
 
         # For now, limit the IPs only to IPv4 hosts.  In order to support IPv6,
@@ -46,7 +69,7 @@ silence_warnings {
       end
     end
 
-    
+
     class Connection
       def connect
         @sock = if !!options[:ssl]
@@ -56,19 +79,19 @@ silence_warnings {
         end
       end
     end
-    
+
     Sockets.send(:remove_const, :TCP)
     Sockets.send(:remove_const, :SSL)
     module Sockets
       module Connectable
         attr_accessor :options
-        
+
         def alive?
           !closed?
         end
-        
+
         module ClassMethods
-          
+
           def connect(host, port, timeout, options={})
             socket = EM.connect(host, port, self) do |c|
               c.pending_connect_timeout = timeout
@@ -91,8 +114,8 @@ silence_warnings {
           rescue OpenSSL::SSL::SSLError => error
             raise Errors::ConnectionFailure, "#{host}:#{port}: #{error.class.name} (#{error.errno}): #{error.message}"
           end
-          
-          
+
+
         end
       end
 
@@ -111,7 +134,7 @@ silence_warnings {
             start_tls
           end
         end
-        
+
         def ssl_verify_peer(pem)
           unless cert_store = @options[:ssl][:cert_store]
             cert_store = OpenSSL::X509::Store.new
@@ -126,7 +149,7 @@ silence_warnings {
                   return true
                 end
               end
-              
+
               host = @options[:ssl][:verify_host]
               if OpenSSL::SSL.verify_certificate_identity(cert, host)
                 @verified = true
@@ -134,13 +157,13 @@ silence_warnings {
               end
             end
           end
-          
+
           true
         rescue => e
           unbind "Failed to verify SSL certificate of peer"
           false
         end
-        
+
         def ssl_handshake_completed
           if @options[:ssl][:verify_peer] && !@verified
             unbind "Failed to verify SSL certificate of peer"
@@ -149,8 +172,8 @@ silence_warnings {
             @in_req.succeed self
           end
         end
-        
+
       end
     end
   end
-}
+end
