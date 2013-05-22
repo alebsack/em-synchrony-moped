@@ -71,6 +71,10 @@ silence_warnings do
 
 
     class Connection
+      def connected?
+        @sock && !@sock.instance_variable_get("@remote_closed") && !@sock.closed?
+      end
+
       def connect
         @sock = if !!options[:ssl]
           Sockets::SSL.connect(host, port, timeout, options)
@@ -95,7 +99,6 @@ silence_warnings do
           def connect(host, port, timeout, options={})
             socket = EM.connect(host, port, self) do |c|
               c.pending_connect_timeout = timeout
-              c.comm_inactivity_timeout = timeout
               c.options = options.merge(:host => host)
             end
             # In TCPSocket, new against a closed port raises Errno::ECONNREFUSED.
