@@ -1,4 +1,7 @@
-# EM-Synchrony-Moped
+EM-Synchrony-Moped
+[![Dependency Status](https://gemnasium.com/alebsack/em-synchrony-moped.png)](https://gemnasium.com/alebsack/em-synchrony-moped)
+[![Build Status](https://travis-ci.org/alebsack/em-synchrony-moped.png?branch=master)](https://travis-ci.org/alebsack/em-synchrony-moped)
+=====
 
 EM-Synchrony-Moped is a [Moped](https://github.com/mongoid/mongoid) driver patch for [EM-Synchrony](http://github.com/igrigorik/em-synchrony).  Moped is the MongoDB driver for the [Mongoid](http://github.com/mongoid/mongoid) ORM.
 
