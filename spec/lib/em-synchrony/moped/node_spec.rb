@@ -41,7 +41,7 @@ describe Moped::Node do
 
     context 'with an unpresponsive host' do
       # 127.0.0.2 seems to timeout for my tests...
-      let(:node_options) { { host: '127.0.0.2' } }
+      let(:node_options) { { host: ENV['TIMEOUT_HOST'] } }
       it 'should raise a timeout error' do
         expect { node.refresh }.to raise_error(
           Moped::Errors::ConnectionFailure,

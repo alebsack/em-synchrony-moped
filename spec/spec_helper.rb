@@ -10,6 +10,8 @@ Spork.prefork do
   # if you change any configuration or code from libraries loaded here, you'll
   # need to restart spork for it take effect.
 
+  ENV['TIMEOUT_HOST'] ||= 'www.google.com'
+
   require 'rspec'
   require 'simplecov'
   SimpleCov.start do
