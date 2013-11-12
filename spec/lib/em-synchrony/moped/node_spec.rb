@@ -14,7 +14,8 @@ describe Moped::Node do
   let(:node) do
     options = node_options.merge(timeout: 1)
     host = options.delete(:host) || 'localhost'
-    Moped::Node.new("#{host}:#{server_port}", options)
+    port = options.delete(:port) || server_port
+    Moped::Node.new("#{host}:#{port}", options)
   end
 
   shared_context 'common node' do
@@ -39,7 +40,7 @@ describe Moped::Node do
       end
     end
 
-    context 'with an unpresponsive host' do
+    context 'with an unresponsive host' do
       # 127.0.0.2 seems to timeout for my tests...
       let(:node_options) { { host: ENV['TIMEOUT_HOST'] } }
       it 'should raise a timeout error' do
@@ -58,6 +59,7 @@ describe Moped::Node do
     end
 
     context 'without a server' do
+      let(:node_options) { { port: 2 } }
       it 'should raise a connection error on connection refused' do
         server.stop
         expect { node.refresh }.to raise_error(
