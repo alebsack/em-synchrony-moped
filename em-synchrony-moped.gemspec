@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'moped',             '~> 1.5.1'
   s.add_runtime_dependency 'em-resolv-replace', '~> 1.1.3'
 
-  s.add_development_dependency 'rake',
+  s.add_development_dependency 'rake'
   s.add_development_dependency 'rspec',         '~> 2.12.0'
   s.add_development_dependency 'guard'
   s.add_development_dependency 'guard-rspec'
