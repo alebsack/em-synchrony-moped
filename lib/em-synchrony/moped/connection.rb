@@ -1,23 +1,21 @@
 # encoding: utf-8
 
+require 'moped/connection'
+
 module Moped
+
+  # Em-Synchrony overrides for Moped::Connection  
   class Connection
+    alias_method :super_connect, :connect
     def connect
-      if EventMachine.reactor_thread?
-        if !!options[:ssl]
-          @sock = Sockets::EmSSL.em_connect(host, port, timeout, options)
-        else
-          @sock = Sockets::EmTCP.em_connect(host, port, timeout, options)
-        end
-      else # use old driver
-        if !!options[:ssl]
-          @sock = Sockets::SSL.connect(host, port, timeout)
-        else
-          @sock = Sockets::TCP.connect(host, port, timeout)
-        end
+      return super_connect unless EventMachine.reactor_thread?
+      if !!options[:ssl]
+        @sock = Sockets::EmSSL.em_connect(host, port, timeout, options)
+      else
+        @sock = Sockets::EmTCP.em_connect(host, port, timeout, options)
       end
     end
-  end # class Cnnection
+  end
 
   module Sockets
     module Connectable
@@ -36,7 +34,6 @@ module Moped
             fail SocketError, socket.unbind_reason
           end
           socket
-
         rescue Errno::ETIMEDOUT
           fail Errors::ConnectionFailure,
                "Timed out connection to Mongo on #{host}:#{port}"

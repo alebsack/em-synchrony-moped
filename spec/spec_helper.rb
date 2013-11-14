@@ -14,6 +14,12 @@ Spork.prefork do
 
   require 'rspec'
   require 'simplecov'
+  require 'coveralls'
+
+  SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
+    SimpleCov::Formatter::HTMLFormatter,
+    Coveralls::SimpleCov::Formatter
+  ]
   SimpleCov.start do
     add_group 'Lib', 'lib'
     add_filter '/spec/'

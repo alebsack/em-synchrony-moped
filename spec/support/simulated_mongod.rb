@@ -134,7 +134,7 @@ class FakeMongodServer
     ensure_reactor do
       @server = EventMachine.start_server(
         @host, 0, FakeMongod, @options, self)
-      @port = Socket.unpack_sockaddr_in(EM.get_sockname(@server))[0]
+      @port = Socket.unpack_sockaddr_in(EventMachine.get_sockname(@server))[0]
     end
   end
 

@@ -5,11 +5,11 @@ shared_context 'with em-synchrony' do
     require 'em-synchrony'
     EventMachine.error_handler do |e|
       puts "Error in Eventmachine: #{e.inspect}"
-      EM.stop
+      EventMachine.stop
     end
     EventMachine.synchrony do
       example.run
-      EM.stop if EM.reactor_running?
+      EventMachine.stop if EventMachine.reactor_running?
     end
   end
 end
@@ -18,7 +18,7 @@ shared_context 'without em-synchrony' do
   before(:each) do
     EventMachine.error_handler do |e|
       puts "Error in Eventmachine: #{e.inspect}"
-      EM.stop
+      EventMachine.stop
     end
     queue = Queue.new
     @em_thread = Thread.new { EventMachine.run { queue << true } }
@@ -26,7 +26,7 @@ shared_context 'without em-synchrony' do
   end
 
   after(:each) do
-    EM.stop
+    EventMachine.stop
     @em_thread.join
   end
 end
