@@ -38,7 +38,7 @@ module Moped
         fiber.resume(Resolv::ResolvError.new(a.inspect))
       end
       result = Fiber.yield
-      raise result if result.is_a?(StandardError)
+      fail result if result.is_a?(StandardError)
       result
     end
   end

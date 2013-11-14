@@ -1,9 +1,14 @@
-EM-Synchrony-Moped [![Gem Version](https://badge.fury.io/rb/em-synchrony-moped.png)](http://badge.fury.io/rb/em-synchrony-moped) [![Dependency Status](https://gemnasium.com/alebsack/em-synchrony-moped.png)](https://gemnasium.com/alebsack/em-synchrony-moped) [![Build Status](https://travis-ci.org/alebsack/em-synchrony-moped.png?branch=master)](https://travis-ci.org/alebsack/em-synchrony-moped)
+EM-Synchrony-Moped
 =====
+[![Gem Version](https://badge.fury.io/rb/em-synchrony-moped.png)](http://badge.fury.io/rb/em-synchrony-moped) [![Dependency Status](https://gemnasium.com/alebsack/em-synchrony-moped.png)](https://gemnasium.com/alebsack/em-synchrony-moped) [![Build Status](https://travis-ci.org/alebsack/em-synchrony-moped.png?branch=master)](https://travis-ci.org/alebsack/em-synchrony-moped) [![Coverage Status](https://coveralls.io/repos/alebsack/em-synchrony-moped/badge.png?branch=master)](https://coveralls.io/r/alebsack/em-synchrony-moped?branch=master) [![Code Climate](https://codeclimate.com/github/alebsack/em-synchrony-moped.png)](https://codeclimate.com/github/alebsack/em-synchrony-moped)
 
-EM-Synchrony-Moped is a [Moped](https://github.com/mongoid/mongoid) driver patch for [EM-Synchrony](http://github.com/igrigorik/em-synchrony).  Moped is the MongoDB driver for the [Mongoid](http://github.com/mongoid/mongoid) ORM.
+EM-Synchrony-Moped is a [Moped](https://github.com/mongoid/moped) driver patch for [EM-Synchrony](http://github.com/igrigorik/em-synchrony).  Moped is the MongoDB driver for the [Mongoid](http://github.com/mongoid/mongoid) ORM.
 
- * Supports SSL connections
+## Features
+ * Supports SSL connections and server certificate checking
+ * Uses an EventMachine-aware DNS lookup
+ * Can be included in threaded applications
+ * Unit tested against the threaded (original driver) behavior
 
 ## Usage
 

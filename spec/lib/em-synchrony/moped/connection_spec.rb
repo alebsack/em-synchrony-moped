@@ -4,9 +4,6 @@ require 'spec_helper'
 require 'moped'
 require 'em-synchrony/moped'
 
-# TODO: clean up a bit.  we're basically testing Connection through Node.
-# we should be able to test Connection by itself.
-
 describe Moped::Connection do
   it 'should have patches included' do
     expect { Moped::Sockets::EmTCP }.not_to raise_error(NameError)
@@ -17,58 +14,48 @@ describe Moped::Connection do
   let(:server_port) { server.port }
   after { server.stop }
 
-  let(:node_options) { {} }
-  let(:node) do
-    options = node_options.merge(timeout: 1)
-    host = options.delete(:host) || 'localhost'
+  let(:options) { {} }
+  let(:conn) do
+    timeout = 1
+    host = options.delete(:host) || '127.0.0.1'
     port = options.delete(:port) || server_port
-    Moped::Node.new("#{host}:#{port}", options)
+    Moped::Connection.new(host, port, timeout, options)
   end
 
   shared_context 'common connection' do
     context 'with a running server' do
       it 'should connect' do
-        node.refresh
-        node.should be_primary
-        node.should be_connected
-      end
-
-      it 'should detect a disconnect' do
-        node.refresh
-        node.should be_primary
-        node.should be_connected
-        server.stop
-        expect do
-          node.command('admin', ismaster: 1)
-        end.to raise_error(
-          Moped::Errors::ConnectionFailure # TODO: check the message
-        )
-        node.should_not be_connected
+        expect(conn.connect).to be_a(connection_class)
       end
     end
 
     context 'with an unresponsive host' do
       # 127.0.0.2 seems to timeout for my tests...
-      let(:node_options) { { host: ENV['TIMEOUT_HOST'] } }
+      let(:options) { { host: ENV['TIMEOUT_HOST'] } }
       it 'should raise a timeout error' do
-        expect { node.refresh }.to raise_error(
+        expect { conn.connect }.to raise_error(
           Moped::Errors::ConnectionFailure,
           /^Timed out connection to Mongo on/)
       end
     end
 
     context 'without a server' do
-      let(:node_options) { { port: 2 } }
+      let(:options) { { port: 2 } }
       it 'should raise a connection error on connection refused' do
         server.stop
-        expect { node.refresh }.to raise_error(
+        expect { conn.connect }.to raise_error(
           Moped::Errors::ConnectionFailure, /ECONNREFUSED/)
       end
     end
   end
 
-  shared_context 'common connection ssl' do
-    context 'with ssl server' do
+  context 'evented' do
+    include_context 'with em-synchrony'
+    let(:connection_class) { Moped::Sockets::EmTCP }
+    include_context 'common connection'
+    context 'with ssl' do
+      let(:ssl_options) { nil }
+      let(:options) { { ssl: ssl_options } }
       let(:mongod_options) do
         {
           ssl: {
@@ -79,60 +66,196 @@ describe Moped::Connection do
         }
       end
 
-      context 'without verifying peer' do
-        let(:node_options) { { ssl: { verify_peer: false } } }
-        it 'should connect' do
-          node.refresh
-          node.should be_primary
+      context 'without specifying ssl' do
+        let(:ssl_options) { nil }
+        let(:options) { {} }
+        it 'should connect (though comms will fail later)' do
+          expect(conn.connect).to be_a(Moped::Sockets::EmTCP)
         end
       end
 
-      context 'when verifying peer' do
-        let(:node_options) do
-          { ssl: {
-              verify_peer: true,
-              verify_cert: "#{SSL_DIR}/ca_cert.pem",
-              verify_host: 'localhost'
+      context 'and a server with a trusted certificate' do
+        context 'when specifying ssl: true' do
+          let(:ssl_options) { true }
+          it 'should connect' do
+            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+          end
+        end
+
+        context 'when specifying ssl: {}' do
+          let(:ssl_options) { {} }
+          it 'should connect' do
+            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+          end
+        end
+
+        context 'when not verifying peer' do
+          let(:ssl_options) { { verify_peer: false } }
+          it 'should connect' do
+            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+          end
+        end
+
+        context 'when verifying peer' do
+          context 'and no certificate provided' do
+            let(:ssl_options) { { verify_peer: true } }
+            it 'should raise an error' do
+              expect { conn.connect }
+                .to raise_error(
+                  Moped::Errors::ConnectionFailure,
+                  /Failed to verify SSL certificate of peer/
+                )
+            end
+          end
+
+          context 'and a certificate is provided' do
+            context 'and verify_host is not provided' do
+              let(:ssl_options) do
+                {
+                  verify_peer: true,
+                  verify_cert: "#{SSL_DIR}/ca_cert.pem"
+                }
+              end
+              it 'should raise an error' do
+                expect { conn.connect }
+                  .to raise_error(
+                    Moped::Errors::ConnectionFailure,
+                    /Failed to verify SSL certificate of peer/
+                  )
+              end
+            end
+            context 'and verify_host does not match the server cert' do
+              let(:ssl_options) do
+                {
+                  verify_peer: true,
+                  verify_cert: "#{SSL_DIR}/ca_cert.pem",
+                  verify_host: 'remotehost'
+                }
+              end
+              it 'should raise an error' do
+                expect { conn.connect }
+                  .to raise_error(
+                    Moped::Errors::ConnectionFailure,
+                    /Failed to verify SSL certificate of peer/
+                  )
+              end
+            end
+            context 'and verify_host matches the server cert' do
+              let(:ssl_options) do
+                {
+                  verify_peer: true,
+                  verify_cert: "#{SSL_DIR}/ca_cert.pem",
+                  verify_host: 'localhost'
+                }
+              end
+              it 'should connect' do
+                expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+              end
+            end
+          end # 'and a certificate is provided'
+        end # 'when verifying peer'
+      end # server with a trusted certificate
+      context 'and a server with an untrusted certificate' do
+        let(:mongod_options) do
+          {
+            ssl: {
+              private_key_file: "#{SSL_DIR}/untrusted.key",
+              cert_chain_file: "#{SSL_DIR}/untrusted.crt",
+              verify_peer: false
             }
           }
         end
-        it 'should connect' do
-          node.refresh
-          node.should be_primary
-        end
 
-        context 'with untrusted key on server' do
-          let(:mongod_options) do
-            {
-              ssl: {
-                private_key_file: "#{SSL_DIR}/untrusted.key",
-                cert_chain_file: "#{SSL_DIR}/untrusted.crt",
-                verify_peer: false
-              }
-            }
-          end
-
-          it 'should connect and fail to verify peer' do
-            expect do
-              node.refresh
-              node.should be_primary
-            end.to raise_error(
-              Moped::Errors::ConnectionFailure,
-              /Failed to verify SSL certificate of peer/
-            )
+        context 'when specifying ssl: true' do
+          let(:ssl_options) { true }
+          it 'should connect' do
+            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
           end
         end
-      end
-    end
-  end
 
-  context 'evented' do
-    include_context 'with em-synchrony'
-    include_context 'common connection'
-    include_context 'common connection ssl'
-  end
+        context 'when specifying ssl: {}' do
+          let(:ssl_options) { {} }
+          it 'should connect' do
+            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+          end
+        end
+
+        context 'when not verifying peer' do
+          let(:ssl_options) { { verify_peer: false } }
+          it 'should connect' do
+            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+          end
+        end
+
+        context 'when verifying peer' do
+          context 'and no certificate provided' do
+            let(:ssl_options) { { verify_peer: true } }
+            it 'should raise an error' do
+              expect { conn.connect }
+                .to raise_error(
+                  Moped::Errors::ConnectionFailure,
+                  /Failed to verify SSL certificate of peer/
+                )
+            end
+          end
+
+          context 'and a certificate is provided' do
+            context 'and verify_host is not provided' do
+              let(:ssl_options) do
+                {
+                  verify_peer: true,
+                  verify_cert: "#{SSL_DIR}/ca_cert.pem"
+                }
+              end
+              it 'should raise an error' do
+                expect { conn.connect }
+                  .to raise_error(
+                    Moped::Errors::ConnectionFailure,
+                    /Failed to verify SSL certificate of peer/
+                  )
+              end
+            end
+            context 'and verify_host does not match the server cert' do
+              let(:ssl_options) do
+                {
+                  verify_peer: true,
+                  verify_cert: "#{SSL_DIR}/ca_cert.pem",
+                  verify_host: 'remotehost'
+                }
+              end
+              it 'should raise an error' do
+                expect { conn.connect }
+                  .to raise_error(
+                    Moped::Errors::ConnectionFailure,
+                    /Failed to verify SSL certificate of peer/
+                  )
+              end
+            end
+            context 'and verify_host matches the server cert' do
+              let(:ssl_options) do
+                {
+                  verify_peer: true,
+                  verify_cert: "#{SSL_DIR}/ca_cert.pem",
+                  verify_host: 'localhost'
+                }
+              end
+              it 'should raise an error' do
+                expect { conn.connect }
+                  .to raise_error(
+                    Moped::Errors::ConnectionFailure,
+                    /Failed to verify SSL certificate of peer/
+                  )
+              end
+            end
+          end # 'and a certificate is provided'
+        end # 'when verifying peer'
+      end # 'and a server with an untrusted certificate'
+    end # 'with ssl'
+  end # 'evented'
+
   context 'threaded' do
     include_context 'without em-synchrony'
+    let(:connection_class) { Moped::Sockets::TCP }
     include_context 'common connection'
   end
 

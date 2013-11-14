@@ -5,6 +5,7 @@ shared_context 'with em-synchrony' do
     require 'em-synchrony'
     EventMachine.error_handler do |e|
       puts "Error in Eventmachine: #{e.inspect}"
+      puts e.backtrace.join("\n")
       EventMachine.stop
     end
     EventMachine.synchrony do
@@ -18,6 +19,7 @@ shared_context 'without em-synchrony' do
   before(:each) do
     EventMachine.error_handler do |e|
       puts "Error in Eventmachine: #{e.inspect}"
+      puts e.backtrace.join("\n")
       EventMachine.stop
     end
     queue = Queue.new

@@ -3,8 +3,7 @@
 require 'moped/connection'
 
 module Moped
-
-  # Em-Synchrony overrides for Moped::Connection  
+  # Em-Synchrony overrides for Moped::Connection
   class Connection
     alias_method :super_connect, :connect
     def connect
@@ -19,6 +18,7 @@ module Moped
 
   module Sockets
     module Connectable
+      # Class methods to extend the Connectable Class
       module ClassMethods
         def em_connect(host, port, timeout, options)
           socket = EventMachine.connect(host, port, self) do |c|
@@ -35,8 +35,8 @@ module Moped
           end
           socket
         rescue Errno::ETIMEDOUT
-          fail Errors::ConnectionFailure,
-               "Timed out connection to Mongo on #{host}:#{port}"
+          raise Errors::ConnectionFailure,
+                "Timed out connection to Mongo on #{host}:#{port}"
         rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, Errno::EPIPE,
                Errno::ECONNRESET, IOError => error
           fail Errors::ConnectionFailure,
@@ -45,10 +45,6 @@ module Moped
         rescue SocketError => error
           fail Errors::ConnectionFailure,
                "#{host}:#{port}: #{error.class.name}: #{error.message}"
-        rescue OpenSSL::SSL::SSLError => error
-          fail Errors::ConnectionFailure,
-               "#{host}:#{port}: #{error.class.name} (#{error.errno}): " +
-               "#{error.message}"
         end
       end
     end
@@ -56,11 +52,7 @@ module Moped
     # The EM-Synchrony flavor of Moped::Sockets::TCP
     class EmTCP < EventMachine::Synchrony::TCPSocket
       include Connectable
-
-      # TODO: re-evaluate the options call.  Can't we pass the caller
-      # up to the connection or something?
       attr_accessor :options
-
       def alive?
         !closed?
       end
@@ -70,50 +62,49 @@ module Moped
     class EmSSL < EmTCP
       def connection_completed
         @verified = false
-        if @options[:ssl].is_a?(Hash)
-          start_tls(@options[:ssl])
-        else
-          start_tls
+        @cert_store = ssl_options.delete(:cert_store)
+        @cert_store ||= OpenSSL::X509::Store.new
+        if (cert_file = ssl_options.delete(:verify_cert))
+          @cert_store.add_file(cert_file)
         end
+        start_tls(ssl_options)
       end
 
       def ssl_verify_peer(pem)
-        unless (cert_store = @options[:ssl][:cert_store])
-          cert_store = OpenSSL::X509::Store.new
-          cert_store.add_file(@options[:ssl][:verify_cert])
-        end
-
-        if (cert = OpenSSL::X509::Certificate.new(pem) rescue nil)
-          if cert_store.verify(cert)
-
-            cert.extensions.each do |e|
-              if e.oid == 'basicConstraints' && e.value == 'CA:TRUE'
-                return true
-              end
-            end
-
-            host = @options[:ssl][:verify_host]
-            if OpenSSL::SSL.verify_certificate_identity(cert, host)
-              @verified = true
-              return true
-            end
+        return true unless ssl_options[:verify_peer]
+        if (cert = certificate(pem)) && @cert_store.verify(cert)
+          # bypass hostname checking for this cert if it's a CA
+          return true if cert.extensions.find do |e|
+            e.oid == 'basicConstraints' && e.value == 'CA:TRUE'
           end
+
+          @verified = true if (host = ssl_options[:verify_host]) &&
+            OpenSSL::SSL.verify_certificate_identity(cert, host)
         end
 
+        # Always return true.  We will evaluate the certificate chain in
+        # ssl_handshake_completed.
         true
-      rescue
-        unbind 'Failed to verify SSL certificate of peer'
-        false
       end
 
       def ssl_handshake_completed
-        if @options[:ssl][:verify_peer] && !@verified
+        if ssl_options[:verify_peer] && !@verified
           unbind 'Failed to verify SSL certificate of peer'
         else
           @opening = false
           @in_req.succeed self
         end
       end
-    end
+
+      private
+
+      def ssl_options
+        @ssl_options ||= @options[:ssl] == true ? {} : @options[:ssl] || {}
+      end
+
+      def certificate(pem)
+        OpenSSL::X509::Certificate.new(pem)
+      end
+    end # EmSSL
   end
 end
