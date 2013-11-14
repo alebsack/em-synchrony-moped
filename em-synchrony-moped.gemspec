@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = 'em-synchrony-moped'
-  s.version = "1.0.0.beta.1"
+  s.version = "1.0.0.beta.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Adam Lebsack"]
@@ -19,12 +19,12 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   s.add_runtime_dependency 'eventmachine',      '~> 1.0'
-  s.add_runtime_dependency 'em-synchrony',      '~> 1.0'
+  s.add_runtime_dependency 'em-synchrony',      '~> 1.0.3'
   s.add_runtime_dependency 'moped',             '~> 1.5.1'
-  s.add_runtime_dependency 'em-resolv-replace', '~> 1.1.3'
+  s.add_runtime_dependency 'em-resolv-replace'
 
   s.add_development_dependency 'rake'
-  s.add_development_dependency 'rspec',         '~> 2.12.0'
+  s.add_development_dependency 'rspec'
   s.add_development_dependency 'guard'
   s.add_development_dependency 'guard-rspec'
   s.add_development_dependency 'guard-bundler'

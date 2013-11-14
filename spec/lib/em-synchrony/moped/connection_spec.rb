@@ -6,7 +6,7 @@ require 'em-synchrony/moped'
 
 describe Moped::Connection do
   it 'should have patches included' do
-    expect { Moped::Sockets::EmTCP }.not_to raise_error(NameError)
+    expect { Moped::Sockets::EmTCP }.not_to raise_error
   end
 
   let(:mongod_options) { {} }
@@ -27,7 +27,7 @@ describe Moped::Connection do
       it 'should connect' do
         expect(conn.connect).to be_a(connection_class)
       end
-    end
+     end
 
     context 'with an unresponsive host' do
       # 127.0.0.2 seems to timeout for my tests...
