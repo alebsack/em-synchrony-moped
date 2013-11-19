@@ -2,16 +2,18 @@
 
 Gem::Specification.new do |s|
   s.name = 'em-synchrony-moped'
-  s.version = "1.0.0.beta.2"
+  s.version = "1.0.0.beta.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Adam Lebsack"]
   s.email = ["alebsack@gmail.com"]
   
-  s.summary = %q{Moped driver for EM-Synchrony}
-  s.description = %q{EM-Synchrony-Moped is a Moped driver patch for EM-Synchtony, allowing your asynchronous application use non-blocking connections to MongoDB.  Moped is the MongoDB driver for the Mongoid ORM.}
-  s.email = %q{alebsack@gmail.com}
-
+  s.summary = 'Moped driver for EM-Synchrony'
+  s.description = 'EM-Synchrony-Moped is a Moped driver patch for ' +
+                  'EM-Synchrony, allowing your asynchronous application use' +
+                  'non-blocking connections to MongoDB.  Moped is the' +
+                  'MongoDB driver for the Mongoid ORM.'
+  s.license = 'MIT'
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
@@ -32,5 +34,4 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rubocop'
   s.add_development_dependency 'spork'
   s.add_development_dependency 'simplecov'
-
 end
