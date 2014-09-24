@@ -6,7 +6,7 @@ require 'em-synchrony/moped'
 
 describe Moped::Connection do
   it 'should have patches included' do
-    expect { Moped::Sockets::EmTCP }.not_to raise_error
+    expect { Moped::Connection::Socket::EmTCP }.not_to raise_error
   end
 
   let(:mongod_options) { {} }
@@ -51,7 +51,7 @@ describe Moped::Connection do
 
   context 'evented' do
     include_context 'with em-synchrony'
-    let(:connection_class) { Moped::Sockets::EmTCP }
+    let(:connection_class) { Moped::Connection::Socket::EmTCP }
     include_context 'common connection'
     context 'with ssl' do
       let(:ssl_options) { nil }
@@ -70,7 +70,7 @@ describe Moped::Connection do
         let(:ssl_options) { nil }
         let(:options) { {} }
         it 'should connect (though comms will fail later)' do
-          expect(conn.connect).to be_a(Moped::Sockets::EmTCP)
+          expect(conn.connect).to be_a(Moped::Connection::Socket::EmTCP)
         end
       end
 
@@ -78,21 +78,21 @@ describe Moped::Connection do
         context 'when specifying ssl: true' do
           let(:ssl_options) { true }
           it 'should connect' do
-            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+            expect(conn.connect).to be_a(Moped::Connection::Socket::EmSSL)
           end
         end
 
         context 'when specifying ssl: {}' do
           let(:ssl_options) { {} }
           it 'should connect' do
-            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+            expect(conn.connect).to be_a(Moped::Connection::Socket::EmSSL)
           end
         end
 
         context 'when not verifying peer' do
           let(:ssl_options) { { verify_peer: false } }
           it 'should connect' do
-            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+            expect(conn.connect).to be_a(Moped::Connection::Socket::EmSSL)
           end
         end
 
@@ -149,7 +149,7 @@ describe Moped::Connection do
                 }
               end
               it 'should connect' do
-                expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+                expect(conn.connect).to be_a(Moped::Connection::Socket::EmSSL)
               end
             end
           end # 'and a certificate is provided'
@@ -169,21 +169,21 @@ describe Moped::Connection do
         context 'when specifying ssl: true' do
           let(:ssl_options) { true }
           it 'should connect' do
-            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+            expect(conn.connect).to be_a(Moped::Connection::Socket::EmSSL)
           end
         end
 
         context 'when specifying ssl: {}' do
           let(:ssl_options) { {} }
           it 'should connect' do
-            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+            expect(conn.connect).to be_a(Moped::Connection::Socket::EmSSL)
           end
         end
 
         context 'when not verifying peer' do
           let(:ssl_options) { { verify_peer: false } }
           it 'should connect' do
-            expect(conn.connect).to be_a(Moped::Sockets::EmSSL)
+            expect(conn.connect).to be_a(Moped::Connection::Socket::EmSSL)
           end
         end
 
@@ -255,7 +255,7 @@ describe Moped::Connection do
 
   context 'threaded' do
     include_context 'without em-synchrony'
-    let(:connection_class) { Moped::Sockets::TCP }
+    let(:connection_class) { Moped::Connection::Socket::TCP }
     include_context 'common connection'
   end
 

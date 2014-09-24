@@ -36,7 +36,7 @@ module Moped
           else
             class_eval <<-RUBY, __FILE__, __LINE__ + 1
               def deserialize_#{name}(buffer)
-                self.#{name} = BSON::Document.deserialize(buffer)
+                self.#{name} = BSON::Document.from_bson(buffer)
               end
             RUBY
           end
