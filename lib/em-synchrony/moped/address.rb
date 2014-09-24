@@ -1,4 +1,9 @@
 # encoding: utf-8
+
+require 'moped/address'
+require 'em-dns-resolver'
+require 'fiber'
+
 module Moped
   class Address
 
@@ -20,8 +25,6 @@ module Moped
     end
 
     def em_each_address(value)
-      puts "em_each_address: #{value.inspect}"
-
       # Lookup in /etc/hosts
       result = []
       @hosts ||= Resolv::Hosts.new
